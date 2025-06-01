@@ -1,37 +1,524 @@
-/* Remove global 100% width on buttons */
-button {
-  background: linear-gradient(to right, #5522fa, #0074e4);
-  color: white;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Oliver RPS</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 400px;
+    margin: auto;
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(90deg, #2a7b9b, #57c785, #53bfeD);
+    background-size: cover;
+    color: white;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 5px #0008;
+  }
+  #setup, #game, #resultScreen {
+    background: rgba(255 255 255 / 0.15);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    margin-top: 20px;
+  }
+  button {
   cursor: pointer;
-  transition: transform 0.2s ease;
-  padding: 15px 30px;
-  font-size: 40px;
-  border-radius: 12px;
-  border: none;
-  /* Remove width: 100%; */
-  width: auto; /* or just remove width property */
+  pointer-events: auto;
 }
 
-/* Flex container for the buttons */
-.rps-buttons {
+  input, button {
+    width: 100%;
+    font-size: 18px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    border: none;
+  }
+  input {
+    background: #fff;
+    color: #333;
+    border: 2px solid #ccc;
+  }
+  input:focus {
+    border-color: #0074e4;
+    outline: none;
+  }
+  .rps-button {
+  margin-right: 10px; /* space between buttons */
+}
+
+/* Optional: Remove margin from the last button */
+.rps-button:last-child {
+  margin-right: 0;
+}
+.buttons-container {
   display: flex;
-  justify-content: center; /* center buttons horizontally */
-  gap: 20px; /* spacing between buttons */
-  margin: 20px 0;
+  gap: 10px; /* adds spacing between flex items */
 }
 
-/* Remove margin-right from individual buttons */
+  button {
+    background: linear-gradient(to right, #5522fa, #0074e4);
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    size: auto;
+  }
+  .buttons-container {
+  display: flex;
+  gap: 15px;
+}
 .rps-button {
+  margin-right: 15px;
+}
+.choisebtn {
+    width: 80%;
+}
+/* Remove margin on last button */
+.rps-button:last-child {
   margin-right: 0;
 }
 
-/* Optional: add hover effect */
-.rps-buttons button:hover:not(:disabled) {
-  transform: scale(1.05);
+  button:hover:not(:disabled) {
+    transform: scale(1.05);
+  }
+  button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  #scoreboard {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 15px;
+  }
+  .scoreBox {
+    background: rgba(255 255 255 / 0.25);
+    border-radius: 12px;
+    padding: 15px 25px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.2em;
+  }
+  #status {
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-align: center;
+  }
+  #choices {
+    display: flex;
+    justify-content: space-around;
+  }
+  
+  .choiceBtn {
+    font-size: 40px;
+    padding: 15px 20px;
+    border-radius: 12px;
+    background: rgba(255 255 255 / 0.2);
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .choiceBtn:hover:not(:disabled) {
+    background: rgba(255 255 255 / 0.4);
+  }
+  input, textarea {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.rps-buttons {
+  display: flex;
+  justify-content: center; /* centers buttons horizontally */
+  gap: 15px; /* space between buttons */
+  margin: 20px 0; /* optional vertical spacing */
 }
 
-/* Make sure buttons don't stretch to full width */
-.choiceBtn {
-  width: auto; /* override any width: 100% */
+.rps-buttons button {
   cursor: pointer;
+  padding: 10px 20px;
+  font-size: 40px;
 }
+
+  #resultText {
+    font-size: 2em;
+    text-align: center;
+    margin-bottom: 15px;    margin-left: 15px;    margin-right: 15px;
+  }
+  #resultScreen p {
+    font-size: 1.1em;
+    margin: 5px 0;
+    text-align: center;
+  }
+
+  /* Animations */
+  #resultText.animate-win {
+    animation: pulseWin 0.8s;
+    color: #4caf50;
+  }
+  #resultText.animate-lose {
+    animation: pulseLose 0.8s;
+    color: #f44336;
+  }
+  #resultText.animate-tie {
+    animation: shakeTie 0.6s;
+    color: #ffc107;
+  }
+
+  @keyframes pulseWin {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+  @keyframes pulseLose {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+  @keyframes shakeTie {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+</style>
+</head>
+<body>
+
+<h1>Oliver RPS</h1>
+
+<!-- SETUP SCREEN -->
+<div id="setup">
+  <input id="playerNameInput" placeholder="Your Name" />
+  <button id="createBtn">Create Game</button>
+  <input id="joinCodeInput" placeholder="Room Code (6 chars)" />
+  <button id="joinBtn">Join Game</button>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game" style="display:none;">
+  <div id="scoreboard">
+    <div class="scoreBox">
+      <div id="player1Name">Player 1</div>
+      <div>Score: <span id="player1Score">0</span></div>
+    </div>
+    <div class="scoreBox">
+      <div id="player2Name">Player 2</div>
+      <div>Score: <span id="player2Score">0</span></div>
+    </div>
+  </div>
+  <div id="status">Waiting for players...</div>
+  <div class="rps-buttons">
+    <button class="choiceBtn" data-choice="rock">🪨</button>
+    <button class="choiceBtn" data-choice="paper">📄</button>
+    <button class="choiceBtn" data-choice="scissors">✂️</button>
+  </div>
+  
+<!-- RESULT SCREEN -->
+<div id="resultScreen" style="display:none;">
+  <div id="resultText"></div>
+  <p>Player 1 (<span id="resPlayer1Name"></span>): <span id="resPlayer1Score"></span></p>
+  <p>Player 2 (<span id="resPlayer2Name"></span>): <span id="resPlayer2Score"></span></p>
+  <button id="continueBtn">Continue</button>
+  <button id="leaveBtn">Leave Room</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAZ6kLwtn3ulk5DMaxxjMZOKp2Lscg2njo",
+  authDomain: "rock-paper-scissors-72ad9.firebaseapp.com",
+  databaseURL: "https://rock-paper-scissors-72ad9-default-rtdb.firebaseio.com",
+  projectId: "rock-paper-scissors-72ad9",
+  storageBucket: "rock-paper-scissors-72ad9.appspot.com",
+  messagingSenderId: "492191154696",
+  appId: "1:492191154696:web:9ff5d928599dd21311c7bd",
+  measurementId: "G-LF97H69SB0"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Elements
+const setupDiv = document.getElementById('setup');
+const gameDiv = document.getElementById('game');
+const resultDiv = document.getElementById('resultScreen');
+
+const createBtn = document.getElementById('createBtn');
+const joinBtn = document.getElementById('joinBtn');
+const playerNameInput = document.getElementById('playerNameInput');
+const joinCodeInput = document.getElementById('joinCodeInput');
+
+const player1NameDisplay = document.getElementById('player1Name');
+const player2NameDisplay = document.getElementById('player2Name');
+const player1ScoreDisplay = document.getElementById('player1Score');
+const player2ScoreDisplay = document.getElementById('player2Score');
+
+const statusDisplay = document.getElementById('status');
+const choicesDiv = document.getElementById('choices');
+const choiceButtons = document.querySelectorAll('.choiceBtn');
+
+const resultText = document.getElementById('resultText');
+const resPlayer1Name = document.getElementById('resPlayer1Name');
+const resPlayer2Name = document.getElementById('resPlayer2Name');
+const resPlayer1Score = document.getElementById('resPlayer1Score');
+const resPlayer2Score = document.getElementById('resPlayer2Score');
+const continueBtn = document.getElementById('continueBtn');
+const leaveBtn = document.getElementById('leaveBtn');
+
+let roomId = "";
+let playerId = ""; // 'player1' or 'player2'
+let playerName = "";
+let opponentName = "";
+
+let gameRef = null;
+let unsubscribe = null;
+
+// Sound Effects
+const winSound = new Audio("win.mp3");
+const loseSound = new Audio("lose.mp3");
+const tieSound = new Audio("tie.mp3");
+const clickSound = new Audio("btn.mp3");
+
+document.querySelectorAll("button").forEach(btn => {
+  btn.addEventListener("click", () => clickSound.play());
+});
+
+// Create game room
+createBtn.onclick = async () => {
+  playerName = playerNameInput.value.trim();
+  if (!playerName) return alert("Please enter your name.");
+  
+  // Generate 6-char room code uppercase
+  roomId = Math.random().toString(36).substring(2,8).toUpperCase();
+  playerId = "player1";
+  gameRef = ref(db, "games/" + roomId);
+  
+  // Set initial game data
+  await set(gameRef, {
+    player1: { name: playerName, choice: null, score: 0 },
+    player2: { name: null, choice: null, score: 0 },
+    resultShown: false
+  });
+  
+  startGame();
+};
+
+// Join existing room
+joinBtn.onclick = async () => {
+  playerName = playerNameInput.value.trim();
+  if (!playerName) return alert("Please enter your name.");
+  roomId = joinCodeInput.value.trim().toUpperCase();
+  if (roomId.length !== 6) return alert("Invalid room code.");
+
+  gameRef = ref(db, "games/" + roomId);
+  const snapshot = await new Promise(resolve => onValue(gameRef, snap => resolve(snap), { onlyOnce: true }));
+  const data = snapshot.val();
+
+  if (!data) return alert("Room not found.");
+  if (data.player2 && data.player2.name) return alert("Room is full.");
+
+  playerId = "player2";
+
+  await update(gameRef, {
+    "player2/name": playerName,
+    "player2/choice": null,
+    resultShown: false
+  });
+
+  startGame();
+};
+
+function startGame() {
+  setupDiv.style.display = "none";
+  gameDiv.style.display = "block";
+  resultDiv.style.display = "none";
+  
+  listenForGameChanges();
+}
+
+function listenForGameChanges() {
+  if (unsubscribe) unsubscribe();
+  
+  unsubscribe = onValue(gameRef, async snapshot => {
+    const data = snapshot.val();
+    if (!data) {
+      alert("Game ended or room deleted.");
+      resetToSetup();
+      return;
+    }
+
+    // Update names and scores
+    player1NameDisplay.textContent = data.player1?.name || "Player 1";
+    player2NameDisplay.textContent = data.player2?.name || "Player 2";
+    player1ScoreDisplay.textContent = data.player1?.score || 0;
+    player2ScoreDisplay.textContent = data.player2?.score || 0;
+
+    if (!data.player2?.name) {
+      statusDisplay.textContent = "Waiting for another player to join...";
+      disableChoiceButtons(true);
+      return;
+    }
+
+    statusDisplay.textContent = `You are ${playerId === "player1" ? "Player 1" : "Player 2"} (${playerName})`;
+
+    // If current player already chose, disable buttons
+    if ((playerId === "player1" && data.player1.choice) || (playerId === "player2" && data.player2.choice)) {
+      disableChoiceButtons(true);
+      statusDisplay.textContent += " — Waiting for opponent...";
+    } else {
+      disableChoiceButtons(false);
+    }
+
+    // Check if both players made choices and result is not shown
+    if (data.player1.choice && data.player2.choice && !data.resultShown) {
+      // Show result screen after short delay (countdown)
+      disableChoiceButtons(true);
+      statusDisplay.textContent = "Both players chose! Showing result...";
+      
+      await delay(1500);
+
+      showResult(data);
+    }
+  });
+}
+
+// Disable or enable choice buttons
+function disableChoiceButtons(disable) {
+  choiceButtons.forEach(btn => btn.disabled = disable);
+}
+
+choiceButtons.forEach(btn => {
+  btn.onclick = () => {
+    const choice = btn.dataset.choice;
+    if (!choice) return;
+    makeChoice(choice);
+  };
+});
+
+async function makeChoice(choice) {
+  if (!gameRef) return;
+  
+  let updateObj = {};
+  if (playerId === "player1") updateObj["player1/choice"] = choice;
+  else updateObj["player2/choice"] = choice;
+
+  await update(gameRef, updateObj);
+}
+
+// Show result screen with winner and update scores
+async function showResult(data) {
+  gameDiv.style.display = "none";
+  resultDiv.style.display = "block";
+
+  const p1Choice = data.player1.choice;
+  const p2Choice = data.player2.choice;
+
+  resPlayer1Name.textContent = data.player1.name;
+  resPlayer2Name.textContent = data.player2.name;
+
+  resPlayer1Score.textContent = data.player1.score;
+  resPlayer2Score.textContent = data.player2.score;
+
+  const winner = getWinner(p1Choice, p2Choice);
+  let resultMsg = "";
+  
+  // Calculate new scores
+  let newScore1 = data.player1.score || 0;
+  let newScore2 = data.player2.score || 0;
+
+  // Add emojis for choices to show visually
+  const emojiMap = {
+    rock: "🪨",
+    paper: "📄",
+    scissors: "✂️"
+  };
+
+  const p1Display = `${emojiMap[p1Choice] || ""} ${data.player1.name}`;
+  const p2Display = `${emojiMap[p2Choice] || ""} ${data.player2.name}`;
+
+  if (winner === "tie") {
+    resultMsg = `Tie! Both chose ${emojiMap[p1Choice]}`;
+    tieSound.play();
+    resultText.className = "animate-tie";
+  } else if (winner === "player1") {
+    resultMsg = `${p1Display} wins!`;
+    newScore1++;
+    winSound.play();
+    resultText.className = "animate-win";
+  } else if (winner === "player2") {
+    resultMsg = `${p2Display} wins!`;
+    newScore2++;
+    loseSound.play();
+    resultText.className = "animate-lose";
+  }
+
+  resultText.textContent = resultMsg;
+  resPlayer1Score.textContent = newScore1;
+  resPlayer2Score.textContent = newScore2;
+
+  // Update scores and mark result shown
+  await update(gameRef, {
+    "player1/score": newScore1,
+    "player2/score": newScore2,
+    resultShown: true
+  });
+}
+
+continueBtn.onclick = async () => {
+  if (!gameRef) return;
+  
+  // Clear choices, reset resultShown
+  await update(gameRef, {
+    "player1/choice": null,
+    "player2/choice": null,
+    resultShown: false
+  });
+
+  resultDiv.style.display = "none";
+  gameDiv.style.display = "block";
+};
+
+leaveBtn.onclick = () => {
+  // Remove listeners and reset
+  if (unsubscribe) unsubscribe();
+  resetToSetup();
+};
+
+function resetToSetup() {
+  roomId = "";
+  playerId = "";
+  playerName = "";
+  opponentName = "";
+  gameRef = null;
+  unsubscribe = null;
+
+  setupDiv.style.display = "block";
+  gameDiv.style.display = "none";
+  resultDiv.style.display = "none";
+
+  playerNameInput.value = "";
+  joinCodeInput.value = "";
+  statusDisplay.textContent = "";
+  disableChoiceButtons(true);
+}
+
+function getWinner(choice1, choice2) {
+  if (choice1 === choice2) return "tie";
+  if (
+    (choice1 === "rock" && choice2 === "scissors") ||
+    (choice1 === "paper" && choice2 === "rock") ||
+    (choice1 === "scissors" && choice2 === "paper")
+  ) return "player1";
+  return "player2";
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+</script>
+
+</body>
+</html>
