@@ -121,10 +121,21 @@
     background: rgba(255 255 255 / 0.2);
     border: none;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, transform 0.2s ease;
+    user-select: none;
   }
   .choiceBtn:hover:not(:disabled) {
     background: rgba(255 255 255 / 0.4);
+  }
+  .choiceBtn.selected {
+    background: #00ffcc;
+    transform: scale(1.2);
+    box-shadow: 0 0 15px #00ffcc;
+  }
+  .choiceBtn.opponent-selected {
+    background: #ff4081;
+    transform: scale(1.1);
+    box-shadow: 0 0 10px #ff4081;
   }
   input, textarea {
     max-width: 100%;
@@ -183,6 +194,21 @@
     25% { transform: translateX(-10px); }
     75% { transform: translateX(10px); }
   }
+
+  /* Loader animation for waiting */
+  .loader {
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top: 5px solid white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    margin: 0 auto 10px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg);}
+    100% { transform: rotate(360deg);}
+  }
 </style>
 </head>
 <body>
@@ -191,22 +217,21 @@
 
 <!-- SETUP SCREEN -->
 <div id="setup">
-    <input id="playerNameInput" placeholder="Your Name" />
+    <input id="playerNameInput" placeholder="Your Name" autocomplete="off"/>
     <button id="createBtn">Create Game</button>
     <div id="roomCodeDisplay" style="font-weight:bold; text-align:center; margin-bottom: 15px;"></div>
-    <input id="joinCodeInput" placeholder="Room Code (6 chars)" />
+    <input id="joinCodeInput" placeholder="Room Code (6 chars)" autocomplete="off" />
     <button id="joinBtn">Join Game</button>
 </div>
 
 <!-- GAME SCREEN -->
-<!-- GAME SCREEN -->
 <div id="game" style="display:none;">
-<!-- Room Code Display in Game -->
-<div id="roomCodeInGame" style="font-size: 1.2em; font-weight: bold; text-align: center; margin-bottom: 10px;">
+  <!-- Room Code Display in Game -->
+  <div id="roomCodeInGame" style="font-size: 1.2em; font-weight: bold; text-align: center; margin-bottom: 10px;">
     Room Code: 
   </div>
   
-  <!-- Your existing score display should come after this -->
+  <!-- Scoreboard -->
   <div id="scoreboard">
     <div>
       <span id="player1Name">Player 1</span>: <span id="player1Score">0</span>
@@ -215,310 +240,557 @@
       <span id="player2Name">Player 2</span>: <span id="player2Score">0</span>
     </div>
   </div>
-      <div id="status">Waiting for players...</div>
-    <div class="rps-buttons">
-      <button class="choiceBtn" data-choice="rock">🪨</button>
-      <button class="choiceBtn" data-choice="paper">📄</button>
-      <button class="choiceBtn" data-choice="scissors">✂️</button>
-    </div>
+
+  <!-- Status and Loader -->
+  <div id="statusContainer" style="text-align:center;">
+    <div id="loader" class="loader" style="display:none;"></div>
+    <div id="status">Waiting for players...</div>
   </div>
-  
+
+  <!-- Choice Buttons -->
+  <div class="rps-buttons">
+    <button class="choiceBtn" data-choice="rock" title="Rock">🪨</button>
+    <button class="choiceBtn" data-choice="paper" title="Paper">📄</button>
+    <button class="choiceBtn" data-choice="scissors" title="Scissors">✂️</button>
+  </div>
+</div>
+
 <!-- RESULT SCREEN -->
 <div id="resultScreen" style="display:none;">
   <div id="resultText"></div>
-  <p>Player 1 (<span id="resPlayer1Name"></span>): <span id="resPlayer1Score"></span></p>
-  <p>Player 2 (<span id="resPlayer2Name"></span>): <span id="resPlayer2Score"></span></p>
-  <button id="continueBtn">Continue</button>
-  <button id="leaveBtn">Leave Room</button>
+  <p>Player 1 (<span id="resPlayer1Name"></span>): <span id="resPlayer1Score"></span> chose <span id="resPlayer1Choice"></span></p>
+  <p>Player 2 (<span id="resPlayer2Name"></span>): <span id="resPlayer2Score"></span> chose <span id="resPlayer2Choice"></span></p>
+  <button id="playAgainBtn">Play Again</button>
+  <button id="leaveBtn">Leave Game</button>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAZ6kLwtn3ulk5DMaxxjMZOKp2Lscg2njo",
-  authDomain: "rock-paper-scissors-72ad9.firebaseapp.com",
-  databaseURL: "https://rock-paper-scissors-72ad9-default-rtdb.firebaseio.com",
-  projectId: "rock-paper-scissors-72ad9",
-  storageBucket: "rock-paper-scissors-72ad9.appspot.com",
-  messagingSenderId: "492191154696",
-  appId: "1:492191154696:web:9ff5d928599dd21311c7bd",
-  measurementId: "G-LF97H69SB0"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// Elements
-const setupDiv = document.getElementById('setup');
-const gameDiv = document.getElementById('game');
-const resultDiv = document.getElementById('resultScreen');
-
-const createBtn = document.getElementById('createBtn');
-const joinBtn = document.getElementById('joinBtn');
-const playerNameInput = document.getElementById('playerNameInput');
-const joinCodeInput = document.getElementById('joinCodeInput');
-const roomCodeDisplay = document.getElementById('roomCodeDisplay');
-
-const player1NameDisplay = document.getElementById('player1Name');
-const player2NameDisplay = document.getElementById('player2Name');
-const player1ScoreDisplay = document.getElementById('player1Score');
-const player2ScoreDisplay = document.getElementById('player2Score');
-
-const statusDisplay = document.getElementById('status');
-const choiceButtons = document.querySelectorAll('.choiceBtn');
-
-const resultText = document.getElementById('resultText');
-const resPlayer1Name = document.getElementById('resPlayer1Name');
-const resPlayer2Name = document.getElementById('resPlayer2Name');
-const resPlayer1Score = document.getElementById('resPlayer1Score');
-const resPlayer2Score = document.getElementById('resPlayer2Score');
-const continueBtn = document.getElementById('continueBtn');
-const leaveBtn = document.getElementById('leaveBtn');
-
-let roomId = "";
-let playerId = ""; // 'player1' or 'player2'
-let playerName = "";
-let opponentName = "";
-
-let gameRef = null;
-let unsubscribe = null;
-
-// Sound Effects
-const winSound = new Audio("win.mp3");
-const loseSound = new Audio("lose.mp3");
-const tieSound = new Audio("tie.mp3");
-const clickSound = new Audio("btn.mp3");
-
-document.querySelectorAll("button").forEach(btn => {
-  btn.addEventListener("click", () => clickSound.play());
-});
-
-// Create game room
-createBtn.onclick = async () => {
-  playerName = playerNameInput.value.trim();
-  if (!playerName) return alert("Please enter your name.");
-  
-  // Generate 6-char room code uppercase
-  roomId = Math.random().toString(36).substring(2,8).toUpperCase();
-  playerId = "player1";
-  gameRef = ref(db, "games/" + roomId);
-  
-  // Set initial game data
-  await set(gameRef, {
-    player1: { name: playerName, choice: null, score: 0 },
-    player2: { name: null, choice: null, score: 0 },
-    resultShown: false
-  });
-  
-  document.getElementById('roomCodeInGame').textContent = "Room Code: " + roomId;
-
-  // SHOW THE ROOM CODE TO THE PLAYER
-  roomCodeDisplay.textContent = `Room Code: ${roomId}`;
-  
-  // Update UI
-  setupDiv.style.display = "none";
-  gameDiv.style.display = "block";
-  resultDiv.style.display = "none";
-  
-  player1NameDisplay.textContent = playerName;
-  player2NameDisplay.textContent = "Waiting...";
-  player1ScoreDisplay.textContent = 0;
-  player2ScoreDisplay.textContent = 0;
-  
-  statusDisplay.textContent = "Waiting for opponent to join...";
-  enableChoices(false); // disable choices until opponent joins
-  
-  listenForGameUpdates();
-};
-
-// Join game room
-joinBtn.onclick = async () => {
-  playerName = playerNameInput.value.trim();
-  if (!playerName) return alert("Please enter your name.");
-  
-  const code = joinCodeInput.value.trim().toUpperCase();
-  if (code.length !== 6) return alert("Room code must be 6 characters.");
-  
-  roomId = code;
-  gameRef = ref(db, "games/" + roomId);
-  
-  // Read game data once
-  const snapshot = await new Promise(resolve => onValue(gameRef, resolve, {onlyOnce:true}));
-  const data = snapshot.val();
-  
-  if (!data) {
-    alert("Room does not exist.");
-    return;
-  }
-  
-  if (data.player2.name) {
-    alert("Room is full.");
-    return;
-  }
-  
-  playerId = "player2";
-  
-  // Update player2 info
-  await update(gameRef, {
-    "player2/name": playerName,
-    "player2/choice": null,
-    resultShown: false
-  });
-  
-  // Update UI
-  setupDiv.style.display = "none";
-  gameDiv.style.display = "block";
-  resultDiv.style.display = "none";
-  
-  player2NameDisplay.textContent = playerName;
-  player1NameDisplay.textContent = data.player1.name;
-  player1ScoreDisplay.textContent = data.player1.score || 0;
-  player2ScoreDisplay.textContent = data.player2.score || 0;
-  
-  statusDisplay.textContent = "Opponent connected. Make your choice!";
-  enableChoices(true);
-  
-  listenForGameUpdates();
-};
-
-function enableChoices(enable) {
-  choiceButtons.forEach(btn => {
-    btn.disabled = !enable;
-  });
-}
-
-choiceButtons.forEach(btn => {
-  btn.onclick = async () => {
-    if (!gameRef || !playerId) return;
-    const choice = btn.getAttribute("data-choice");
-    
-    // Save choice to database
-    await update(gameRef, {
-      [`${playerId}/choice`]: choice
-    });
-    
-    statusDisplay.textContent = "Choice made. Waiting for opponent...";
-    enableChoices(false);
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZ6kLwtn3ulk5DMaxxjMZOKp2Lscg2njo",
+    authDomain: "rock-paper-scissors-72ad9.firebaseapp.com",
+    databaseURL: "https://rock-paper-scissors-72ad9-default-rtdb.firebaseio.com",
+    projectId: "rock-paper-scissors-72ad9",
+    storageBucket: "rock-paper-scissors-72ad9.firebasestorage.app",
+    messagingSenderId: "492191154696",
+    appId: "1:492191154696:web:9ff5d928599dd21311c7bd",
+    measurementId: "G-LF97H69SB0"
   };
-});
 
-continueBtn.onclick = async () => {
-  // Reset choices & resultShown flag for next round
-  if (!gameRef) return;
-  await update(gameRef, {
-    "player1/choice": null,
-    "player2/choice": null,
-    resultShown: false
-  });
-  
-  resultDiv.style.display = "none";
-  gameDiv.style.display = "block";
-  statusDisplay.textContent = "Make your choice!";
-  enableChoices(true);
-};
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-leaveBtn.onclick = () => {
-  location.reload();
-};
+  // DOM elements
+  const setupDiv = document.getElementById('setup');
+  const gameDiv = document.getElementById('game');
+  const resultDiv = document.getElementById('resultScreen');
+  const playerNameInput = document.getElementById('playerNameInput');
+  const createBtn = document.getElementById('createBtn');
+  const joinCodeInput = document.getElementById('joinCodeInput');
+  const joinBtn = document.getElementById('joinBtn');
+  const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+  const roomCodeInGame = document.getElementById('roomCodeInGame');
+  const player1NameSpan = document.getElementById('player1Name');
+  const player2NameSpan = document.getElementById('player2Name');
+  const player1ScoreSpan = document.getElementById('player1Score');
+  const player2ScoreSpan = document.getElementById('player2Score');
+  const statusSpan = document.getElementById('status');
+  const loader = document.getElementById('loader');
+  const choiceButtons = Array.from(document.querySelectorAll('.choiceBtn'));
+  const resultText = document.getElementById('resultText');
+  const resPlayer1Name = document.getElementById('resPlayer1Name');
+  const resPlayer2Name = document.getElementById('resPlayer2Name');
+  const resPlayer1Score = document.getElementById('resPlayer1Score');
+  const resPlayer2Score = document.getElementById('resPlayer2Score');
+  const resPlayer1Choice = document.getElementById('resPlayer1Choice');
+  const resPlayer2Choice = document.getElementById('resPlayer2Choice');
+  const playAgainBtn = document.getElementById('playAgainBtn');
+  const leaveBtn = document.getElementById('leaveBtn');
 
-// Listen to game updates from Firebase
-function listenForGameUpdates() {
-  if (unsubscribe) unsubscribe();
-  unsubscribe = onValue(gameRef, snapshot => {
-    const data = snapshot.val();
-    if (!data) return;
+  // Sounds
+  const soundWin = new Audio('win.mp3');
+  const soundLose = new Audio('lose.mp3');
+  const soundTie = new Audio('tie.mp3');
+  const soundCountdown = new Audio('countdown.mp3');
+  const soundBtn = new Audio('btn.mp3');
 
-    // Update player names & scores
-    player1NameDisplay.textContent = data.player1.name || "Player 1";
-    player2NameDisplay.textContent = data.player2.name || "Player 2";
-    player1ScoreDisplay.textContent = data.player1.score || 0;
-    player2ScoreDisplay.textContent = data.player2.score || 0;
+  // Game variables
+  let playerName = '';
+  let roomCode = '';
+  let playerNumber = 0; // 1 or 2
+  let playerChoice = null;
+  let opponentChoice = null;
+  let playerScore = 0;
+  let opponentScore = 0;
+  let opponentName = '';
+  let gameStarted = false;
+  let countdownTimer = null;
 
-    // If one player missing
-    if (!data.player1.name || !data.player2.name) {
-      statusDisplay.textContent = "Waiting for opponent to join...";
-      enableChoices(false);
-      return;
+  // Generate 6 character room code, uppercase letters and digits
+  function generateRoomCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i=0; i<6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-
-    // Show waiting or allow choice
-    if (!data.player1.choice || !data.player2.choice) {
-      // If current player hasn't chosen yet
-      if (data[playerId].choice === null) {
-        statusDisplay.textContent = "Make your choice!";
-        enableChoices(true);
-      } else {
-        statusDisplay.textContent = "Waiting for opponent...";
-        enableChoices(false);
-      }
-      return;
-    }
-
-    // Both choices made and result not shown => show result
-    if (!data.resultShown) {
-      showResult(data);
-    }
-  });
-}
-
-// Determine winner & show result
-function showResult(data) {
-  const p1Choice = data.player1.choice;
-  const p2Choice = data.player2.choice;
-  const p1Name = data.player1.name;
-  const p2Name = data.player2.name;
-  let winner = null; // 'player1', 'player2', or 'tie'
-
-  if (p1Choice === p2Choice) winner = "tie";
-  else if (
-    (p1Choice === "rock" && p2Choice === "scissors") ||
-    (p1Choice === "scissors" && p2Choice === "paper") ||
-    (p1Choice === "paper" && p2Choice === "rock")
-  ) winner = "player1";
-  else winner = "player2";
-
-  // Update scores locally first (do not directly write here, wait to update DB after)
-  let p1Score = data.player1.score || 0;
-  let p2Score = data.player2.score || 0;
-
-  if (winner === "player1") p1Score++;
-  else if (winner === "player2") p2Score++;
-
-  // Update resultShown and scores in DB
-  update(gameRef, {
-    "player1/score": p1Score,
-    "player2/score": p2Score,
-    resultShown: true
-  });
-
-  // Show results screen UI
-  gameDiv.style.display = "none";
-  resultDiv.style.display = "block";
-
-  // Result text & animation
-  if (winner === "tie") {
-    resultText.textContent = "Tie!";
-    resultText.className = "animate-tie";
-    tieSound.play();
-  } else if (winner === playerId) {
-    resultText.textContent = "You Win!";
-    resultText.className = "animate-win";
-    winSound.play();
-  } else {
-    resultText.textContent = "You Lose!";
-    resultText.className = "animate-lose";
-    loseSound.play();
+    return code;
   }
 
-  resPlayer1Name.textContent = p1Name;
-  resPlayer2Name.textContent = p2Name;
-  resPlayer1Score.textContent = p1Score;
-  resPlayer2Score.textContent = p2Score;
-}
+  // Utility to update UI scoreboard
+  function updateScores(p1Score, p2Score) {
+    player1ScoreSpan.textContent = p1Score;
+    player2ScoreSpan.textContent = p2Score;
+    resPlayer1Score.textContent = p1Score;
+    resPlayer2Score.textContent = p2Score;
+  }
 
+  // Utility to update player names in UI
+  function updatePlayerNames(p1Name, p2Name) {
+    player1NameSpan.textContent = p1Name;
+    player2NameSpan.textContent = p2Name;
+    resPlayer1Name.textContent = p1Name;
+    resPlayer2Name.textContent = p2Name;
+  }
+
+  // Reset choices highlights
+  function resetChoiceHighlights() {
+    choiceButtons.forEach(btn => {
+      btn.classList.remove('selected');
+      btn.classList.remove('opponent-selected');
+      btn.disabled = false;
+    });
+  }
+
+  // Show/hide loader
+  function showLoader(show) {
+    loader.style.display = show ? 'block' : 'none';
+  }
+
+  // Set status text
+  function setStatus(text) {
+    statusSpan.textContent = text;
+  }
+
+  // Enable/disable choice buttons
+  function setButtonsEnabled(enabled) {
+    choiceButtons.forEach(btn => btn.disabled = !enabled);
+  }
+
+  // Remove game data on disconnect/reload
+  function cleanupRoom() {
+    if (!roomCode) return;
+    const roomRef = db.ref('rooms/' + roomCode);
+    roomRef.once('value').then(snapshot => {
+      const room = snapshot.val();
+      if (!room) return;
+      // Remove this player from room
+      if (playerNumber === 1) {
+        roomRef.child('player1').remove();
+        roomRef.child('player1Choice').remove();
+        roomRef.child('player1Score').remove();
+      } else if (playerNumber === 2) {
+        roomRef.child('player2').remove();
+        roomRef.child('player2Choice').remove();
+        roomRef.child('player2Score').remove();
+      }
+      // If room empty, remove whole room
+      roomRef.once('value').then(snap => {
+        const data = snap.val();
+        if ((!data.player1) && (!data.player2)) {
+          roomRef.remove();
+        }
+      });
+    });
+  }
+
+  // Listen to window unload to clean up on page close/refresh
+  window.addEventListener('beforeunload', () => {
+    cleanupRoom();
+  });
+
+  // Show game screen UI and initialize listeners
+  function startGame() {
+    setupDiv.style.display = 'none';
+    resultDiv.style.display = 'none';
+    gameDiv.style.display = 'block';
+    roomCodeInGame.textContent = 'Room Code: ' + roomCode;
+    resetChoiceHighlights();
+    setButtonsEnabled(false); // disabled initially until both players ready
+    showLoader(true);
+    setStatus('Waiting for opponent to join...');
+  }
+
+  // Show result screen with final info
+  function showResultScreen(result, p1Choice, p2Choice) {
+    gameDiv.style.display = 'none';
+    resultDiv.style.display = 'block';
+
+    resPlayer1Choice.textContent = emojiFromChoice(p1Choice);
+    resPlayer2Choice.textContent = emojiFromChoice(p2Choice);
+
+    // Animate result text with color
+    resultText.textContent = result;
+    resultText.className = '';
+    if (result === 'You Win!') {
+      resultText.classList.add('animate-win');
+      soundWin.play();
+    } else if (result === 'You Lose!') {
+      resultText.classList.add('animate-lose');
+      soundLose.play();
+    } else {
+      resultText.classList.add('animate-tie');
+      soundTie.play();
+    }
+  }
+
+  // Emoji from choice string
+  function emojiFromChoice(choice) {
+    if (choice === 'rock') return '🪨';
+    if (choice === 'paper') return '📄';
+    if (choice === 'scissors') return '✂️';
+    return '';
+  }
+
+  // Calculate winner and update scores
+  // returns result from player 1 perspective: "Player 1 wins" / "Player 2 wins" / "Tie"
+  function determineWinner(c1, c2) {
+    if (c1 === c2) return 'tie';
+    if (
+      (c1 === 'rock' && c2 === 'scissors') ||
+      (c1 === 'scissors' && c2 === 'paper') ||
+      (c1 === 'paper' && c2 === 'rock')
+    ) {
+      return 'player1';
+    }
+    return 'player2';
+  }
+
+  // Update game status: show choices visually and enable buttons if player's turn
+  function updateGameUI(gameData) {
+    if (!gameData) return;
+    // Update player names
+    if (gameData.player1) updatePlayerNames(gameData.player1.name, gameData.player2 ? gameData.player2.name : 'Waiting...');
+    // Update scores
+    updateScores(gameData.player1Score || 0, gameData.player2Score || 0);
+
+    // Update waiting or turn info
+    const opponentExists = (playerNumber === 1 ? !!gameData.player2 : !!gameData.player1);
+    if (!opponentExists) {
+      setStatus('Waiting for opponent to join...');
+      showLoader(true);
+      setButtonsEnabled(false);
+      resetChoiceHighlights();
+      return;
+    } else {
+      showLoader(false);
+    }
+
+    // If countdown active, show countdown status (we'll handle in countdown function)
+
+    // Show whose turn to pick
+    if (gameData.currentTurn !== playerNumber) {
+      setStatus("Waiting for opponent's choice...");
+      setButtonsEnabled(false);
+    } else {
+      setStatus('Your turn to pick');
+      setButtonsEnabled(true);
+    }
+
+    // Reset highlights first
+    resetChoiceHighlights();
+
+    // Show player choices (if revealed)
+    if (gameData.player1Choice && playerNumber === 1) {
+      // Show player choice highlighted for self
+      highlightChoice(gameData.player1Choice, 'selected');
+    }
+    if (gameData.player2Choice && playerNumber === 2) {
+      highlightChoice(gameData.player2Choice, 'selected');
+    }
+
+    // Show opponent choice only after result or countdown complete
+    // But since in UI we don't reveal opponent choice before countdown, don't highlight opponent choice here
+
+  }
+
+  // Highlight the choice button by data-choice attribute and class name
+  function highlightChoice(choice, className) {
+    choiceButtons.forEach(btn => {
+      if (btn.dataset.choice === choice) {
+        btn.classList.add(className);
+      }
+    });
+  }
+
+  // Start the countdown and play countdown sound each second, then call callback after countdown ends
+  function startCountdown(seconds, onComplete) {
+    let counter = seconds;
+    setStatus(`Reveal in ${counter}...`);
+    setButtonsEnabled(false);
+
+    const interval = setInterval(() => {
+      counter--;
+      if (counter > 0) {
+        setStatus(`Reveal in ${counter}...`);
+        soundCountdown.play();
+      } else {
+        clearInterval(interval);
+        onComplete();
+      }
+    }, 1000);
+
+    // Play initial countdown sound immediately
+    soundCountdown.play();
+  }
+
+  // Play button click sound
+  function playBtnSound() {
+    soundBtn.currentTime = 0;
+    soundBtn.play();
+  }
+
+  // Handle player choice selection
+  function onChoiceSelected(choice) {
+    if (!gameStarted || choiceButtons.some(btn => btn.disabled)) return; // prevent if disabled
+    playBtnSound();
+
+    playerChoice = choice;
+
+    // Highlight selected button for player
+    resetChoiceHighlights();
+    highlightChoice(choice, 'selected');
+
+    // Disable buttons immediately
+    setButtonsEnabled(false);
+    setStatus('Waiting for opponent...');
+
+    // Update Firebase with choice and switch turn to opponent
+    const roomRef = db.ref('rooms/' + roomCode);
+
+    if (playerNumber === 1) {
+      roomRef.update({
+        player1Choice: choice,
+        currentTurn: 2
+      });
+    } else {
+      roomRef.update({
+        player2Choice: choice,
+        currentTurn: 1
+      });
+    }
+  }
+
+  // Listen for game updates in Firebase
+  function listenGame() {
+    const roomRef = db.ref('rooms/' + roomCode);
+    roomRef.on('value', snapshot => {
+      const data = snapshot.val();
+      if (!data) {
+        // Room deleted or closed, go back to setup
+        alert('Game room closed.');
+        location.reload();
+        return;
+      }
+
+      // If both players present, game started
+      if (data.player1 && data.player2) {
+        if (!gameStarted) {
+          gameStarted = true;
+          showLoader(false);
+        }
+      } else {
+        // Wait for opponent
+        setStatus('Waiting for opponent to join...');
+        showLoader(true);
+        setButtonsEnabled(false);
+      }
+
+      // Update UI names and scores immediately
+      updatePlayerNames(data.player1 ? data.player1.name : 'Player 1', data.player2 ? data.player2.name : 'Player 2');
+      updateScores(data.player1Score || 0, data.player2Score || 0);
+
+      // Check if both choices have been made and countdown not started yet
+      if (data.player1Choice && data.player2Choice && !data.countdownStarted) {
+        // Start countdown to reveal
+        roomRef.update({ countdownStarted: true });
+        startCountdown(3, () => {
+          // After countdown, determine winner
+          const winner = determineWinner(data.player1Choice, data.player2Choice);
+          let resultForPlayer;
+          if (winner === 'tie') resultForPlayer = 'It\'s a Tie!';
+          else if ((winner === 'player1' && playerNumber === 1) || (winner === 'player2' && playerNumber === 2)) resultForPlayer = 'You Win!';
+          else resultForPlayer = 'You Lose!';
+
+          // Update scores in Firebase
+          let p1Score = data.player1Score || 0;
+          let p2Score = data.player2Score || 0;
+          if (winner === 'player1') p1Score++;
+          else if (winner === 'player2') p2Score++;
+
+          roomRef.update({
+            player1Score: p1Score,
+            player2Score: p2Score,
+            lastResult: resultForPlayer,
+            showResult: true
+          });
+
+          // Show result UI to player
+          showResultScreen(resultForPlayer, data.player1Choice, data.player2Choice);
+        });
+        return;
+      }
+
+      // If currently in result screen, wait for user to click play again or leave
+      if (data.showResult) {
+        // Result screen shown, do nothing here
+        return;
+      }
+
+      // If no result to show, update game UI for normal game state
+      updateGameUI(data);
+    });
+  }
+
+  // Create new game
+  createBtn.addEventListener('click', () => {
+  playerName = playerNameInput.value.trim();
+  console.log('Create clicked, playerName:', playerName);
+  
+  if (!playerName) {
+    alert('Please enter your name.');
+    return;
+  }
+  playBtnSound();
+
+  roomCode = generateRoomCode();
+  playerNumber = 1;
+  playerChoice = null;
+  opponentChoice = null;
+  playerScore = 0;
+  opponentScore = 0;
+  gameStarted = false;
+
+  const roomRef = db.ref('rooms/' + roomCode);
+
+  console.log('Creating room with code:', roomCode);
+  roomRef.set({
+    player1: { name: playerName },
+    player1Score: 0,
+    player2Score: 0,
+    currentTurn: 1,
+    showResult: false,
+    countdownStarted: false
+  }).then(() => {
+    console.log('Room created successfully');
+    roomCodeDisplay.textContent = 'Room created: ' + roomCode;
+    startGame();
+    listenGame();
+  }).catch(err => {
+    console.error('Error creating room:', err);
+    alert('Error creating room: ' + err.message);
+  });
+});
+
+  // Join existing game
+  joinBtn.addEventListener('click', () => {
+    playerName = playerNameInput.value.trim();
+    if (!playerName) {
+      alert('Please enter your name.');
+      return;
+    }
+    const code = joinCodeInput.value.trim().toUpperCase();
+    if (code.length !== 6) {
+      alert('Room code must be 6 characters.');
+      return;
+    }
+    playBtnSound();
+
+    const roomRef = db.ref('rooms/' + code);
+    roomRef.once('value').then(snapshot => {
+      const data = snapshot.val();
+      if (!data) {
+        alert('Room code not found.');
+        return;
+      }
+      if (data.player2) {
+        alert('Room is full.');
+        return;
+      }
+
+      roomCode = code;
+      playerNumber = 2;
+      playerChoice = null;
+      opponentChoice = null;
+      playerScore = data.player2Score || 0;
+      opponentScore = data.player1Score || 0;
+      gameStarted = false;
+
+      // Set player2 info
+      roomRef.update({
+        player2: { name: playerName },
+        player2Score: playerScore,
+        showResult: false,
+        countdownStarted: false
+      }).then(() => {
+        startGame();
+        listenGame();
+      }).catch(err => {
+        alert('Error joining room: ' + err.message);
+      });
+    });
+  });
+
+  // Choice buttons listeners
+  choiceButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      onChoiceSelected(btn.dataset.choice);
+    });
+  });
+
+  // Play again button
+  playAgainBtn.addEventListener('click', () => {
+    playBtnSound();
+
+    const roomRef = db.ref('rooms/' + roomCode);
+    roomRef.once('value').then(snapshot => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      // Reset choices and hide result screen
+      playerChoice = null;
+      opponentChoice = null;
+      gameStarted = true;
+
+      roomRef.update({
+        player1Choice: null,
+        player2Choice: null,
+        showResult: false,
+        countdownStarted: false,
+        currentTurn: 1
+      });
+
+      resultDiv.style.display = 'none';
+      gameDiv.style.display = 'block';
+      setStatus('Your turn to pick');
+      setButtonsEnabled(playerNumber === 1);
+      resetChoiceHighlights();
+    });
+  });
+
+  // Leave game button
+  leaveBtn.addEventListener('click', () => {
+    playBtnSound();
+    cleanupRoom();
+    location.reload();
+  });
+
+  // On page load, no game, just show setup
+  setupDiv.style.display = 'block';
+  gameDiv.style.display = 'none';
+  resultDiv.style.display = 'none';
 </script>
-
 </body>
 </html>
