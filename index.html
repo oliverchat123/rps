@@ -28,9 +28,9 @@
     margin-top: 20px;
   }
   button {
-  cursor: pointer;
-  pointer-events: auto;
-}
+    cursor: pointer;
+    pointer-events: auto;
+  }
 
   input, button {
     width: 100%;
@@ -50,17 +50,17 @@
     outline: none;
   }
   .rps-button {
-  margin-right: 10px; /* space between buttons */
-}
+    margin-right: 10px; /* space between buttons */
+  }
 
-/* Optional: Remove margin from the last button */
-.rps-button:last-child {
-  margin-right: 0;
-}
-.buttons-container {
-  display: flex;
-  gap: 10px; /* adds spacing between flex items */
-}
+  /* Optional: Remove margin from the last button */
+  .rps-button:last-child {
+    margin-right: 0;
+  }
+  .buttons-container {
+    display: flex;
+    gap: 10px; /* adds spacing between flex items */
+  }
 
   button {
     background: linear-gradient(to right, #5522fa, #0074e4);
@@ -70,19 +70,19 @@
     size: auto;
   }
   .buttons-container {
-  display: flex;
-  gap: 15px;
-}
-.rps-button {
-  margin-right: 15px;
-}
-.choisebtn {
-    width: 80%;
-}
-/* Remove margin on last button */
-.rps-button:last-child {
-  margin-right: 0;
-}
+    display: flex;
+    gap: 15px;
+  }
+  .rps-button {
+    margin-right: 15px;
+  }
+  .choisebtn {
+      width: 80%;
+  }
+  /* Remove margin on last button */
+  .rps-button:last-child {
+    margin-right: 0;
+  }
 
   button:hover:not(:disabled) {
     transform: scale(1.05);
@@ -127,26 +127,28 @@
     background: rgba(255 255 255 / 0.4);
   }
   input, textarea {
-  max-width: 100%;
-  box-sizing: border-box;
-}
-.rps-buttons {
-  display: flex;
-  justify-content: center; /* centers buttons horizontally */
-  gap: 15px; /* space between buttons */
-  margin: 20px 0; /* optional vertical spacing */
-}
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .rps-buttons {
+    display: flex;
+    justify-content: center; /* centers buttons horizontally */
+    gap: 15px; /* space between buttons */
+    margin: 20px 0; /* optional vertical spacing */
+  }
 
-.rps-buttons button {
-  cursor: pointer;
-  padding: 10px 20px;
-  font-size: 40px;
-}
+  .rps-buttons button {
+    cursor: pointer;
+    padding: 10px 20px;
+    font-size: 40px;
+  }
 
   #resultText {
     font-size: 2em;
     text-align: center;
-    margin-bottom: 15px;    margin-left: 15px;    margin-right: 15px;
+    margin-bottom: 15px;
+    margin-left: 15px;
+    margin-right: 15px;
   }
   #resultScreen p {
     font-size: 1.1em;
@@ -189,29 +191,36 @@
 
 <!-- SETUP SCREEN -->
 <div id="setup">
-  <input id="playerNameInput" placeholder="Your Name" />
-  <button id="createBtn">Create Game</button>
-  <input id="joinCodeInput" placeholder="Room Code (6 chars)" />
-  <button id="joinBtn">Join Game</button>
+    <input id="playerNameInput" placeholder="Your Name" />
+    <button id="createBtn">Create Game</button>
+    <div id="roomCodeDisplay" style="font-weight:bold; text-align:center; margin-bottom: 15px;"></div>
+    <input id="joinCodeInput" placeholder="Room Code (6 chars)" />
+    <button id="joinBtn">Join Game</button>
 </div>
 
 <!-- GAME SCREEN -->
+<!-- GAME SCREEN -->
 <div id="game" style="display:none;">
+<!-- Room Code Display in Game -->
+<div id="roomCodeInGame" style="font-size: 1.2em; font-weight: bold; text-align: center; margin-bottom: 10px;">
+    Room Code: 
+  </div>
+  
+  <!-- Your existing score display should come after this -->
   <div id="scoreboard">
-    <div class="scoreBox">
-      <div id="player1Name">Player 1</div>
-      <div>Score: <span id="player1Score">0</span></div>
+    <div>
+      <span id="player1Name">Player 1</span>: <span id="player1Score">0</span>
     </div>
-    <div class="scoreBox">
-      <div id="player2Name">Player 2</div>
-      <div>Score: <span id="player2Score">0</span></div>
+    <div>
+      <span id="player2Name">Player 2</span>: <span id="player2Score">0</span>
     </div>
   </div>
-  <div id="status">Waiting for players...</div>
-  <div class="rps-buttons">
-    <button class="choiceBtn" data-choice="rock">🪨</button>
-    <button class="choiceBtn" data-choice="paper">📄</button>
-    <button class="choiceBtn" data-choice="scissors">✂️</button>
+      <div id="status">Waiting for players...</div>
+    <div class="rps-buttons">
+      <button class="choiceBtn" data-choice="rock">🪨</button>
+      <button class="choiceBtn" data-choice="paper">📄</button>
+      <button class="choiceBtn" data-choice="scissors">✂️</button>
+    </div>
   </div>
   
 <!-- RESULT SCREEN -->
@@ -250,6 +259,7 @@ const createBtn = document.getElementById('createBtn');
 const joinBtn = document.getElementById('joinBtn');
 const playerNameInput = document.getElementById('playerNameInput');
 const joinCodeInput = document.getElementById('joinCodeInput');
+const roomCodeDisplay = document.getElementById('roomCodeDisplay');
 
 const player1NameDisplay = document.getElementById('player1Name');
 const player2NameDisplay = document.getElementById('player2Name');
@@ -257,7 +267,6 @@ const player1ScoreDisplay = document.getElementById('player1Score');
 const player2ScoreDisplay = document.getElementById('player2Score');
 
 const statusDisplay = document.getElementById('status');
-const choicesDiv = document.getElementById('choices');
 const choiceButtons = document.querySelectorAll('.choiceBtn');
 
 const resultText = document.getElementById('resultText');
@@ -303,221 +312,212 @@ createBtn.onclick = async () => {
     resultShown: false
   });
   
-  startGame();
+  document.getElementById('roomCodeInGame').textContent = "Room Code: " + roomId;
+
+  // SHOW THE ROOM CODE TO THE PLAYER
+  roomCodeDisplay.textContent = `Room Code: ${roomId}`;
+  
+  // Update UI
+  setupDiv.style.display = "none";
+  gameDiv.style.display = "block";
+  resultDiv.style.display = "none";
+  
+  player1NameDisplay.textContent = playerName;
+  player2NameDisplay.textContent = "Waiting...";
+  player1ScoreDisplay.textContent = 0;
+  player2ScoreDisplay.textContent = 0;
+  
+  statusDisplay.textContent = "Waiting for opponent to join...";
+  enableChoices(false); // disable choices until opponent joins
+  
+  listenForGameUpdates();
 };
 
-// Join existing room
+// Join game room
 joinBtn.onclick = async () => {
   playerName = playerNameInput.value.trim();
   if (!playerName) return alert("Please enter your name.");
-  roomId = joinCodeInput.value.trim().toUpperCase();
-  if (roomId.length !== 6) return alert("Invalid room code.");
-
+  
+  const code = joinCodeInput.value.trim().toUpperCase();
+  if (code.length !== 6) return alert("Room code must be 6 characters.");
+  
+  roomId = code;
   gameRef = ref(db, "games/" + roomId);
-  const snapshot = await new Promise(resolve => onValue(gameRef, snap => resolve(snap), { onlyOnce: true }));
+  
+  // Read game data once
+  const snapshot = await new Promise(resolve => onValue(gameRef, resolve, {onlyOnce:true}));
   const data = snapshot.val();
-
-  if (!data) return alert("Room not found.");
-  if (data.player2 && data.player2.name) return alert("Room is full.");
-
+  
+  if (!data) {
+    alert("Room does not exist.");
+    return;
+  }
+  
+  if (data.player2.name) {
+    alert("Room is full.");
+    return;
+  }
+  
   playerId = "player2";
-
+  
+  // Update player2 info
   await update(gameRef, {
     "player2/name": playerName,
     "player2/choice": null,
     resultShown: false
   });
-
-  startGame();
-};
-
-function startGame() {
+  
+  // Update UI
   setupDiv.style.display = "none";
   gameDiv.style.display = "block";
   resultDiv.style.display = "none";
   
-  listenForGameChanges();
-}
-
-function listenForGameChanges() {
-  if (unsubscribe) unsubscribe();
+  player2NameDisplay.textContent = playerName;
+  player1NameDisplay.textContent = data.player1.name;
+  player1ScoreDisplay.textContent = data.player1.score || 0;
+  player2ScoreDisplay.textContent = data.player2.score || 0;
   
-  unsubscribe = onValue(gameRef, async snapshot => {
-    const data = snapshot.val();
-    if (!data) {
-      alert("Game ended or room deleted.");
-      resetToSetup();
-      return;
-    }
+  statusDisplay.textContent = "Opponent connected. Make your choice!";
+  enableChoices(true);
+  
+  listenForGameUpdates();
+};
 
-    // Update names and scores
-    player1NameDisplay.textContent = data.player1?.name || "Player 1";
-    player2NameDisplay.textContent = data.player2?.name || "Player 2";
-    player1ScoreDisplay.textContent = data.player1?.score || 0;
-    player2ScoreDisplay.textContent = data.player2?.score || 0;
-
-    if (!data.player2?.name) {
-      statusDisplay.textContent = "Waiting for another player to join...";
-      disableChoiceButtons(true);
-      return;
-    }
-
-    statusDisplay.textContent = `You are ${playerId === "player1" ? "Player 1" : "Player 2"} (${playerName})`;
-
-    // If current player already chose, disable buttons
-    if ((playerId === "player1" && data.player1.choice) || (playerId === "player2" && data.player2.choice)) {
-      disableChoiceButtons(true);
-      statusDisplay.textContent += " — Waiting for opponent...";
-    } else {
-      disableChoiceButtons(false);
-    }
-
-    // Check if both players made choices and result is not shown
-    if (data.player1.choice && data.player2.choice && !data.resultShown) {
-      // Show result screen after short delay (countdown)
-      disableChoiceButtons(true);
-      statusDisplay.textContent = "Both players chose! Showing result...";
-      
-      await delay(1500);
-
-      showResult(data);
-    }
+function enableChoices(enable) {
+  choiceButtons.forEach(btn => {
+    btn.disabled = !enable;
   });
-}
-
-// Disable or enable choice buttons
-function disableChoiceButtons(disable) {
-  choiceButtons.forEach(btn => btn.disabled = disable);
 }
 
 choiceButtons.forEach(btn => {
-  btn.onclick = () => {
-    const choice = btn.dataset.choice;
-    if (!choice) return;
-    makeChoice(choice);
+  btn.onclick = async () => {
+    if (!gameRef || !playerId) return;
+    const choice = btn.getAttribute("data-choice");
+    
+    // Save choice to database
+    await update(gameRef, {
+      [`${playerId}/choice`]: choice
+    });
+    
+    statusDisplay.textContent = "Choice made. Waiting for opponent...";
+    enableChoices(false);
   };
 });
 
-async function makeChoice(choice) {
-  if (!gameRef) return;
-  
-  let updateObj = {};
-  if (playerId === "player1") updateObj["player1/choice"] = choice;
-  else updateObj["player2/choice"] = choice;
-
-  await update(gameRef, updateObj);
-}
-
-// Show result screen with winner and update scores
-async function showResult(data) {
-  gameDiv.style.display = "none";
-  resultDiv.style.display = "block";
-
-  const p1Choice = data.player1.choice;
-  const p2Choice = data.player2.choice;
-
-  resPlayer1Name.textContent = data.player1.name;
-  resPlayer2Name.textContent = data.player2.name;
-
-  resPlayer1Score.textContent = data.player1.score;
-  resPlayer2Score.textContent = data.player2.score;
-
-  const winner = getWinner(p1Choice, p2Choice);
-  let resultMsg = "";
-  
-  // Calculate new scores
-  let newScore1 = data.player1.score || 0;
-  let newScore2 = data.player2.score || 0;
-
-  // Add emojis for choices to show visually
-  const emojiMap = {
-    rock: "🪨",
-    paper: "📄",
-    scissors: "✂️"
-  };
-
-  const p1Display = `${emojiMap[p1Choice] || ""} ${data.player1.name}`;
-  const p2Display = `${emojiMap[p2Choice] || ""} ${data.player2.name}`;
-
-  if (winner === "tie") {
-    resultMsg = `Tie! Both chose ${emojiMap[p1Choice]}`;
-    tieSound.play();
-    resultText.className = "animate-tie";
-  } else if (winner === "player1") {
-    resultMsg = `${p1Display} wins!`;
-    newScore1++;
-    winSound.play();
-    resultText.className = "animate-win";
-  } else if (winner === "player2") {
-    resultMsg = `${p2Display} wins!`;
-    newScore2++;
-    loseSound.play();
-    resultText.className = "animate-lose";
-  }
-
-  resultText.textContent = resultMsg;
-  resPlayer1Score.textContent = newScore1;
-  resPlayer2Score.textContent = newScore2;
-
-  // Update scores and mark result shown
-  await update(gameRef, {
-    "player1/score": newScore1,
-    "player2/score": newScore2,
-    resultShown: true
-  });
-}
-
 continueBtn.onclick = async () => {
+  // Reset choices & resultShown flag for next round
   if (!gameRef) return;
-  
-  // Clear choices, reset resultShown
   await update(gameRef, {
     "player1/choice": null,
     "player2/choice": null,
     resultShown: false
   });
-
+  
   resultDiv.style.display = "none";
   gameDiv.style.display = "block";
+  statusDisplay.textContent = "Make your choice!";
+  enableChoices(true);
 };
 
 leaveBtn.onclick = () => {
-  // Remove listeners and reset
-  if (unsubscribe) unsubscribe();
-  resetToSetup();
+  location.reload();
 };
 
-function resetToSetup() {
-  roomId = "";
-  playerId = "";
-  playerName = "";
-  opponentName = "";
-  gameRef = null;
-  unsubscribe = null;
+// Listen to game updates from Firebase
+function listenForGameUpdates() {
+  if (unsubscribe) unsubscribe();
+  unsubscribe = onValue(gameRef, snapshot => {
+    const data = snapshot.val();
+    if (!data) return;
 
-  setupDiv.style.display = "block";
+    // Update player names & scores
+    player1NameDisplay.textContent = data.player1.name || "Player 1";
+    player2NameDisplay.textContent = data.player2.name || "Player 2";
+    player1ScoreDisplay.textContent = data.player1.score || 0;
+    player2ScoreDisplay.textContent = data.player2.score || 0;
+
+    // If one player missing
+    if (!data.player1.name || !data.player2.name) {
+      statusDisplay.textContent = "Waiting for opponent to join...";
+      enableChoices(false);
+      return;
+    }
+
+    // Show waiting or allow choice
+    if (!data.player1.choice || !data.player2.choice) {
+      // If current player hasn't chosen yet
+      if (data[playerId].choice === null) {
+        statusDisplay.textContent = "Make your choice!";
+        enableChoices(true);
+      } else {
+        statusDisplay.textContent = "Waiting for opponent...";
+        enableChoices(false);
+      }
+      return;
+    }
+
+    // Both choices made and result not shown => show result
+    if (!data.resultShown) {
+      showResult(data);
+    }
+  });
+}
+
+// Determine winner & show result
+function showResult(data) {
+  const p1Choice = data.player1.choice;
+  const p2Choice = data.player2.choice;
+  const p1Name = data.player1.name;
+  const p2Name = data.player2.name;
+  let winner = null; // 'player1', 'player2', or 'tie'
+
+  if (p1Choice === p2Choice) winner = "tie";
+  else if (
+    (p1Choice === "rock" && p2Choice === "scissors") ||
+    (p1Choice === "scissors" && p2Choice === "paper") ||
+    (p1Choice === "paper" && p2Choice === "rock")
+  ) winner = "player1";
+  else winner = "player2";
+
+  // Update scores locally first (do not directly write here, wait to update DB after)
+  let p1Score = data.player1.score || 0;
+  let p2Score = data.player2.score || 0;
+
+  if (winner === "player1") p1Score++;
+  else if (winner === "player2") p2Score++;
+
+  // Update resultShown and scores in DB
+  update(gameRef, {
+    "player1/score": p1Score,
+    "player2/score": p2Score,
+    resultShown: true
+  });
+
+  // Show results screen UI
   gameDiv.style.display = "none";
-  resultDiv.style.display = "none";
+  resultDiv.style.display = "block";
 
-  playerNameInput.value = "";
-  joinCodeInput.value = "";
-  statusDisplay.textContent = "";
-  disableChoiceButtons(true);
+  // Result text & animation
+  if (winner === "tie") {
+    resultText.textContent = "Tie!";
+    resultText.className = "animate-tie";
+    tieSound.play();
+  } else if (winner === playerId) {
+    resultText.textContent = "You Win!";
+    resultText.className = "animate-win";
+    winSound.play();
+  } else {
+    resultText.textContent = "You Lose!";
+    resultText.className = "animate-lose";
+    loseSound.play();
+  }
+
+  resPlayer1Name.textContent = p1Name;
+  resPlayer2Name.textContent = p2Name;
+  resPlayer1Score.textContent = p1Score;
+  resPlayer2Score.textContent = p2Score;
 }
 
-function getWinner(choice1, choice2) {
-  if (choice1 === choice2) return "tie";
-  if (
-    (choice1 === "rock" && choice2 === "scissors") ||
-    (choice1 === "paper" && choice2 === "rock") ||
-    (choice1 === "scissors" && choice2 === "paper")
-  ) return "player1";
-  return "player2";
-}
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 </script>
 
 </body>
